@@ -14,8 +14,9 @@ import { TEMPLATE_MAP } from "@/lib/data/templates";
 import { STUDENT_REVIEWS } from "@/lib/data/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { Stars } from "@/components/stars";
 import { ApprovalBadge, DangerLabels, SkillChips } from "@/components/quest-parts";
 import { AdBanner } from "@/components/ad-banner";
@@ -244,6 +245,18 @@ export default function QuestDetailPage() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     安全性・難易度・守秘義務の確認が完了すると挑戦できます
                   </p>
+                </div>
+              ) : !state.licenseIssued ? (
+                <div className="space-y-3 rounded-lg bg-neon-amber/10 p-4 text-center text-sm">
+                  <p className="text-2xl">🔒</p>
+                  <p className="font-bold text-neon-amber">ライセンス未取得</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    企業クエストの受注には「見習い技術者ライセンス」が必要です。
+                    工学倫理・機密情報・安全管理の講習を修了しましょう。
+                  </p>
+                  <Link href="/tutorial" className={cn(buttonVariants({ variant: "warning" }), "w-full")}>
+                    🪪 ライセンス講習を受ける
+                  </Link>
                 </div>
               ) : !accepted ? (
                 <>

@@ -54,6 +54,9 @@ export interface Quest {
   approvalStatus: ApprovalStatus;
   isTeam: boolean;
   isRare?: boolean;
+  isUrgent?: boolean; // 緊急クエスト(締切間近・高需要)
+  isPopular?: boolean; // 今週人気のクエスト
+  classmatesChallenging?: number; // 挑戦中の同級生数(ダミー)
   /** 詳細 */
   background: string;
   request: string;
@@ -209,4 +212,16 @@ export interface QuestPostInput {
   learnPoints: string;
   submissionFormat: string;
   criteria: string;
+  /** 学生に公開する情報の段階(応募前から全公開/NDA締結後に詳細公開 など) */
+  disclosureLevel: string;
 }
+
+/** 学生の受注資格ステータス */
+export type StudentStatus =
+  | "未登録"
+  | "チュートリアル中"
+  | "ライセンス未取得"
+  | "見習い技術者"
+  | "企業クエスト受注可能"
+  | "教員承認付きクエスト受注可能"
+  | "チームクエスト参加可能";

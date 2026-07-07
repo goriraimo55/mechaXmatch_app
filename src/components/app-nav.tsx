@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Award, BookOpen, Building2, Home,
+  Award, BookOpen, Building2, Home, IdCard,
   Network, ScrollText, ShieldCheck, Star, Swords, User, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ const NAV_GROUPS: {
     label: "学生メニュー",
     items: [
       { href: "/", label: "ホーム", icon: Home },
+      { href: "/tutorial", label: "ライセンス講習", icon: IdCard },
       { href: "/quests", label: "クエスト", icon: Swords },
       { href: "/learn", label: "学習", icon: BookOpen },
       { href: "/skills", label: "スキルツリー", icon: Network },

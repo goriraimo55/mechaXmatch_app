@@ -1,6 +1,6 @@
 "use client";
 
-/** 学習完了・クエスト完了・レベルアップ時のお祝い演出オーバーレイ */
+/** 学習完了・クエスト完了・レベルアップ・バッジ獲得・宝箱などのお祝い演出オーバーレイ */
 
 import * as React from "react";
 import { useGame } from "@/lib/game";
@@ -12,11 +12,14 @@ export function CelebrationOverlay() {
 
   React.useEffect(() => {
     if (!celebration) return;
-    const t = setTimeout(dismissCelebration, celebration.levelUp ? 3200 : 2200);
+    const long = celebration.kind === "levelup" || celebration.kind === "license";
+    const t = setTimeout(dismissCelebration, long ? 3200 : 2200);
     return () => clearTimeout(t);
   }, [celebration, dismissCelebration]);
 
   if (!celebration) return null;
+
+  const showConfetti = celebration.kind === "levelup" || celebration.kind === "license";
 
   return (
     <div
@@ -25,7 +28,7 @@ export function CelebrationOverlay() {
       aria-live="polite"
     >
       {/* 紙吹雪 */}
-      {celebration.levelUp &&
+      {showConfetti &&
         Array.from({ length: 40 }).map((_, i) => (
           <span
             key={i}
@@ -39,7 +42,7 @@ export function CelebrationOverlay() {
         ))}
 
       <div className="animate-pop-in mx-4 max-w-sm rounded-2xl border border-primary/40 bg-card/95 p-6 text-center shadow-2xl glow-cyan">
-        {celebration.levelUp ? (
+        {celebration.kind === "levelup" && celebration.levelUp ? (
           <>
             <div className="relative mx-auto mb-2 size-16">
               <span className="animate-level-burst absolute inset-0 rounded-full border-2 border-neon-amber" />
@@ -52,13 +55,32 @@ export function CelebrationOverlay() {
               レベル <span className="text-3xl text-primary text-glow">{celebration.levelUp}</span> に到達!
             </p>
           </>
+        ) : celebration.kind === "license" ? (
+          <>
+            <p className="animate-pop-in text-5xl">🪪</p>
+            <p className="mt-2 text-xl font-black tracking-widest text-neon-green">LICENSE GET!</p>
+          </>
+        ) : celebration.kind === "badge" && celebration.badge ? (
+          <>
+            <div className="relative mx-auto mb-1 size-16">
+              <span className="animate-level-burst absolute inset-0 rounded-full border-2 border-neon-purple" />
+              <span className="flex size-16 items-center justify-center rounded-full bg-neon-purple/20 text-4xl">
+                {celebration.badge.icon}
+              </span>
+            </div>
+            <p className="text-lg font-black tracking-widest text-neon-purple">実績解除!</p>
+          </>
+        ) : celebration.kind === "chest" ? (
+          <p className="animate-pop-in text-5xl">🎁</p>
         ) : (
           <p className="text-3xl">✨</p>
         )}
         <p className="mt-2 text-sm text-muted-foreground">{celebration.message}</p>
-        <p className="animate-float-up mt-2 text-xl font-black text-neon-green">
-          +{celebration.xp} XP
-        </p>
+        {celebration.xp > 0 && (
+          <p className="animate-float-up mt-2 text-xl font-black text-neon-green">
+            +{celebration.xp} XP
+          </p>
+        )}
       </div>
     </div>
   );

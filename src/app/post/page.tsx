@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckCircle2, Send } from "lucide-react";
+import { Building2, CheckCircle2, Send, ShieldCheck } from "lucide-react";
 import type { DangerLabel, SkillId } from "@/lib/types";
 import { SKILLS } from "@/lib/data/skills";
 import { useGame } from "@/lib/game";
@@ -75,6 +75,7 @@ export default function PostQuestPage() {
     learnPoints: "",
     submissionFormat: "PDFレポート",
     criteria: "",
+    disclosureLevel: "応募前から全情報を公開",
   });
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
@@ -139,6 +140,25 @@ export default function PostQuestPage() {
           投稿後は<b className="text-foreground">教員が安全性・難易度・守秘義務を確認</b>してから学生に公開されるため、安心してご依頼いただけます。
         </p>
       </div>
+
+      {/* 企業向け安心表示 */}
+      <Card className="border-neon-green/30 bg-neon-green/5">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm text-neon-green">
+            <ShieldCheck className="size-4" /> 安心してご依頼いただくために
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-x-6 gap-y-1.5 text-xs text-muted-foreground sm:grid-cols-2">
+          <p>🪪 学生は<b className="text-foreground">チュートリアル修了後でないと受注できません</b></p>
+          <p>📚 受注学生は<b className="text-foreground">工学倫理・機密情報・安全管理を学習済み</b>です</p>
+          <p>✅ すべての案件に<b className="text-foreground">教員承認フロー</b>があります</p>
+          <p>⚠️ <b className="text-foreground">危険度ラベル</b>で作業リスクを事前共有できます</p>
+          <p>📋 <b className="text-foreground">成果物テンプレート</b>で品質のばらつきを防ぎます</p>
+          <p>⭐ 企業と学生の<b className="text-foreground">相互評価</b>で健全な取引を守ります</p>
+          <p>🔐 機密情報を扱う案件は<b className="text-foreground">受注学生を制限</b>できます</p>
+          <p>🎚️ 学生に公開する情報は<b className="text-foreground">段階的に設定</b>できます</p>
+        </CardContent>
+      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
@@ -210,6 +230,24 @@ export default function PostQuestPage() {
               />
               秘密保持(NDA)が必要な案件
             </label>
+            <Field
+              label="学生に公開する情報の段階"
+              hint="機密情報を扱う案件は、公開範囲を段階的に制限できます"
+            >
+              <Select
+                value={form.disclosureLevel}
+                onChange={(e) => set("disclosureLevel", e.target.value)}
+              >
+                {[
+                  "応募前から全情報を公開",
+                  "応募前は概要のみ・受注確定後に詳細を公開",
+                  "NDA締結後に図面・データを公開",
+                  "教員経由でのみ機密資料を共有",
+                ].map((o) => (
+                  <option key={o}>{o}</option>
+                ))}
+              </Select>
+            </Field>
           </CardContent>
         </Card>
 

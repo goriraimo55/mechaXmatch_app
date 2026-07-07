@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ゲーム状態管理(経験値・レベル・クエスト・承認・localStorage永続化)
+ * ゲーム状態管理(経験値・レベル・クエスト・承認・ライセンス・localStorage永続化)
  * バックエンドなしのプロトタイプのため、すべての状態をここで一元管理する。
  */
 
@@ -12,11 +12,13 @@ import type {
   Quest,
   QuestPostInput,
   SkillId,
+  StudentStatus,
 } from "@/lib/types";
 import { QUESTS } from "@/lib/data/quests";
 import { MATERIAL_MAP } from "@/lib/data/materials";
-import { BADGES } from "@/lib/data/misc";
+import { BADGES, CHEST_REWARDS, TITLES } from "@/lib/data/misc";
 import { COMPANY_REVIEWS } from "@/lib/data/reviews";
+import { TUTORIAL_PASS_XP } from "@/lib/data/tutorial";
 
 /* ---------------- レベル計算 ---------------- */
 
@@ -44,25 +46,15 @@ export function levelProgress(xp: number): { current: number; next: number; perc
 
 /* ---------------- 状態の型 ---------------- */
 
-export interface MyStudentReview {
-  questId: string;
-  clarity: number;
-  responseSpeed: number;
-  rewardFairness: number;
-  learning: number;
-  safetyCare: number;
-  recommend: number;
-  comment: string;
-}
-
 export interface GameState {
   userName: string;
   department: string;
   grade: string;
+  avatar: string;
   xp: number;
   weeklyXp: number; // 今週獲得した経験値(ランキング用)
   skillXp: Record<SkillId, number>;
-  streak: number;
+  loginStreak: number; // 連続学習日数
   lastActiveDate: string | null;
   completedMaterials: string[];
   acceptedQuests: string[];
@@ -70,22 +62,38 @@ export interface GameState {
   customQuests: Quest[];
   statusOverrides: Record<string, { status: ApprovalStatus; teacherComment?: string }>;
   teamApplications: Record<string, string>; // teamQuestId -> 役割名
-  daily: { date: string; done: string[] };
-  myStudentReviews: MyStudentReview[];
+  dailyMissionProgress: { date: string; done: string[] };
+  weeklyMissionProgress: { week: string; done: string[] };
+  myStudentReviews: unknown[];
+  /* --- チュートリアル / ライセンス --- */
+  tutorialCompleted: boolean;
+  licenseIssued: boolean;
+  licenseIssuedAt: string | null;
+  tutorialQuizScore: number | null; // 正答数/全問数(%)
+  completedTutorialModules: string[];
+  /* --- 実績・称号 --- */
+  earnedBadges: string[]; // 獲得済みバッジID(演出済みの記録)
+  unlockedTitles: string[];
+  studentStatus: StudentStatus;
+  /* --- ログインボーナス(宝箱・スタンプカード) --- */
+  lastChestDate: string | null;
+  loginStamps: number; // スタンプカード(7個で1周)
+  lastChestReward: { name: string; xp: number } | null;
 }
 
-/** 初期状態:デモとして少し進んだ状態から始める */
+/** 初期状態:デモとして少し進んだ状態から始める(ライセンスは未取得) */
 const SEED_STATE: GameState = {
   userName: "高専 太郎",
   department: "機械工学科",
   grade: "4年",
+  avatar: "🧑‍🔧",
   xp: 880,
   weeklyXp: 320,
   skillXp: {
     cad: 220, materials: 300, drawing: 260, machining: 100, measurement: 165,
     electronics: 0, control: 0, aidx: 160, report: 290, teamdev: 60,
   },
-  streak: 5,
+  loginStreak: 5,
   lastActiveDate: null,
   completedMaterials: ["m1", "m3", "m6", "m13", "m14"],
   acceptedQuests: [],
@@ -93,19 +101,59 @@ const SEED_STATE: GameState = {
   customQuests: [],
   statusOverrides: {},
   teamApplications: {},
-  daily: { date: "", done: [] },
+  dailyMissionProgress: { date: "", done: [] },
+  weeklyMissionProgress: { week: "", done: [] },
   myStudentReviews: [],
+  tutorialCompleted: false,
+  licenseIssued: false,
+  licenseIssuedAt: null,
+  tutorialQuizScore: null,
+  completedTutorialModules: [],
+  earnedBadges: [],
+  unlockedTitles: [],
+  studentStatus: "ライセンス未取得",
+  lastChestDate: null,
+  loginStamps: 2,
+  lastChestReward: null,
 };
 
-const STORAGE_KEY = "mechaxmatch-state-v1";
+const STORAGE_KEY = "mechaxmatch-state-v2";
 
-/* ---------------- 演出(XP獲得・レベルアップ) ---------------- */
+/* ---------------- 受注資格ステータス ---------------- */
+
+export function deriveStudentStatus(s: GameState): StudentStatus {
+  if (!s.tutorialCompleted) {
+    return s.completedTutorialModules.length > 0 ? "チュートリアル中" : "ライセンス未取得";
+  }
+  const level = playerLevel(s.xp);
+  if (level >= 4) return "チームクエスト参加可能";
+  if (level >= 3) return "教員承認付きクエスト受注可能";
+  if (s.licenseIssued) return "企業クエスト受注可能";
+  return "見習い技術者";
+}
+
+/** 受注資格の段階リスト(ホームの可視化用) */
+export function qualificationSteps(s: GameState): { label: StudentStatus; achieved: boolean; hint: string }[] {
+  const level = playerLevel(s.xp);
+  return [
+    { label: "チュートリアル中", achieved: s.completedTutorialModules.length > 0 || s.tutorialCompleted, hint: "ライセンス講習を開始する" },
+    { label: "見習い技術者", achieved: s.licenseIssued, hint: "講習+ミニテスト合格でライセンス取得" },
+    { label: "企業クエスト受注可能", achieved: s.licenseIssued, hint: "ライセンス取得で解放" },
+    { label: "教員承認付きクエスト受注可能", achieved: s.licenseIssued && level >= 3, hint: "ライセンス + レベル3で解放" },
+    { label: "チームクエスト参加可能", achieved: s.licenseIssued && level >= 4, hint: "ライセンス + レベル4で解放" },
+  ];
+}
+
+/* ---------------- 演出(XP獲得・レベルアップ・バッジ・宝箱) ---------------- */
 
 export interface Celebration {
   key: number;
+  kind: "xp" | "levelup" | "badge" | "chest" | "license";
   message: string;
   xp: number;
-  levelUp: number | null; // レベルアップした場合の新レベル
+  levelUp: number | null;
+  badge?: BadgeDef;
+  rewardName?: string;
 }
 
 /* ---------------- Context ---------------- */
@@ -115,10 +163,10 @@ interface GameContextValue {
   hydrated: boolean;
   celebration: Celebration | null;
   dismissCelebration: () => void;
-  /** ダミーデータ + 企業投稿クエスト(承認状態の上書きを反映済み) */
   allQuests: Quest[];
   questById: (id: string) => Quest | undefined;
   earnedBadges: BadgeDef[];
+  studentStatus: StudentStatus;
   completeMaterial: (id: string) => void;
   acceptQuest: (id: string) => void;
   completeQuest: (id: string) => void;
@@ -126,6 +174,11 @@ interface GameContextValue {
   setQuestStatus: (id: string, status: ApprovalStatus, comment?: string) => void;
   applyToTeam: (teamQuestId: string, role: string) => void;
   completeDaily: (dailyId: string, xp: number) => void;
+  completeWeekly: (missionId: string, xp: number) => void;
+  completeTutorialModule: (moduleId: string) => void;
+  finishTutorial: (scorePercent: number) => void;
+  openChest: () => void;
+  setAvatar: (avatar: string) => void;
   resetAll: () => void;
 }
 
@@ -135,14 +188,24 @@ function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function nextStreak(state: GameState): { streak: number; lastActiveDate: string } {
+/** 週の識別子(年+ISO週番号の簡易版: 年+月+週目) */
+function weekStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-w${Math.ceil(d.getDate() / 7)}`;
+}
+
+function nextStreak(state: GameState): { loginStreak: number; lastActiveDate: string } {
   const today = todayStr();
-  if (state.lastActiveDate === today) return { streak: state.streak, lastActiveDate: today };
+  if (state.lastActiveDate === today)
+    return { loginStreak: state.loginStreak, lastActiveDate: today };
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   if (state.lastActiveDate === yesterday || state.lastActiveDate === null) {
-    return { streak: state.streak + (state.lastActiveDate === null ? 0 : 1), lastActiveDate: today };
+    return {
+      loginStreak: state.loginStreak + (state.lastActiveDate === null ? 0 : 1),
+      lastActiveDate: today,
+    };
   }
-  return { streak: 1, lastActiveDate: today };
+  return { loginStreak: 1, lastActiveDate: today };
 }
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
@@ -162,11 +225,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setHydrated(true);
   }, []);
 
-  // 変更をlocalStorageへ保存
+  // 変更をlocalStorageへ保存(studentStatus・unlockedTitlesは導出して同期)
   React.useEffect(() => {
     if (!hydrated) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const level = playerLevel(state.xp);
+      const snapshot: GameState = {
+        ...state,
+        studentStatus: deriveStudentStatus(state),
+        unlockedTitles: TITLES.filter((t) => level >= t.minLevel).map((t) => t.title),
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
     } catch {
       // ストレージ不可の環境では保存をあきらめる(動作は継続)
     }
@@ -174,7 +243,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   /** 経験値を加算し、レベルアップ判定と演出をまとめて行う */
   const gainXp = React.useCallback(
-    (amount: number, skillIds: SkillId[], message: string) => {
+    (amount: number, skillIds: SkillId[], message: string, kind: Celebration["kind"] = "xp") => {
       setState((prev) => {
         const levelBefore = playerLevel(prev.xp);
         const skillXp = { ...prev.skillXp };
@@ -183,6 +252,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const levelAfter = playerLevel(xp);
         setCelebration({
           key: Date.now(),
+          kind: levelAfter > levelBefore ? "levelup" : kind,
           message,
           xp: amount,
           levelUp: levelAfter > levelBefore ? levelAfter : null,
@@ -214,11 +284,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   );
 
   const acceptQuest = React.useCallback((id: string) => {
-    setState((prev) =>
-      prev.acceptedQuests.includes(id)
+    setState((prev) => {
+      if (!prev.licenseIssued) return prev; // ライセンス未取得時は受注不可
+      return prev.acceptedQuests.includes(id)
         ? prev
-        : { ...prev, acceptedQuests: [...prev.acceptedQuests, id] }
-    );
+        : { ...prev, acceptedQuests: [...prev.acceptedQuests, id] };
+    });
   }, []);
 
   const allQuests = React.useMemo<Quest[]>(() => {
@@ -281,7 +352,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       deliverables: input.deliverables.split("\n").filter(Boolean),
       knowledge: [],
       equipment: input.usesSchoolEquipment ? ["学校設備を使用"] : ["自宅または学校のPC"],
-      cautions: input.safetyNotes ? input.safetyNotes.split("\n").filter(Boolean) : [],
+      cautions: [
+        ...(input.safetyNotes ? input.safetyNotes.split("\n").filter(Boolean) : []),
+        `情報公開範囲: ${input.disclosureLevel}`,
+      ],
       criteria: input.criteria.split("\n").filter(Boolean),
       referenceMaterialIds: [],
       companyRating: 0,
@@ -323,14 +397,87 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const today = todayStr();
       setState((prev) => {
         const daily =
-          prev.daily.date === today ? prev.daily : { date: today, done: [] as string[] };
+          prev.dailyMissionProgress.date === today
+            ? prev.dailyMissionProgress
+            : { date: today, done: [] as string[] };
         if (daily.done.includes(dailyId)) return prev;
-        return { ...prev, daily: { date: today, done: [...daily.done, dailyId] } };
+        return { ...prev, dailyMissionProgress: { date: today, done: [...daily.done, dailyId] } };
       });
-      gainXp(xp, [], "デイリークエスト達成!");
+      gainXp(xp, [], "デイリーミッション達成!");
     },
     [gainXp]
   );
+
+  const completeWeekly = React.useCallback(
+    (missionId: string, xp: number) => {
+      const week = weekStr();
+      setState((prev) => {
+        const weekly =
+          prev.weeklyMissionProgress.week === week
+            ? prev.weeklyMissionProgress
+            : { week, done: [] as string[] };
+        if (weekly.done.includes(missionId)) return prev;
+        return { ...prev, weeklyMissionProgress: { week, done: [...weekly.done, missionId] } };
+      });
+      gainXp(xp, [], "ウィークリーミッション達成!");
+    },
+    [gainXp]
+  );
+
+  const completeTutorialModule = React.useCallback((moduleId: string) => {
+    setState((prev) =>
+      prev.completedTutorialModules.includes(moduleId)
+        ? prev
+        : { ...prev, completedTutorialModules: [...prev.completedTutorialModules, moduleId] }
+    );
+  }, []);
+
+  const finishTutorial = React.useCallback(
+    (scorePercent: number) => {
+      setState((prev) => ({
+        ...prev,
+        tutorialCompleted: true,
+        licenseIssued: true,
+        licenseIssuedAt: new Date().toISOString(),
+        tutorialQuizScore: scorePercent,
+      }));
+      gainXp(
+        TUTORIAL_PASS_XP,
+        [],
+        "🪪 見習い技術者ライセンスを取得!企業クエストが受注可能になりました",
+        "license"
+      );
+    },
+    [gainXp]
+  );
+
+  /** ログインボーナス:1日1回宝箱を開けてランダム報酬 */
+  const openChest = React.useCallback(() => {
+    const today = todayStr();
+    if (state.lastChestDate === today) return;
+    const total = CHEST_REWARDS.reduce((s, r) => s + r.weight, 0);
+    let roll = Math.random() * total;
+    let picked = CHEST_REWARDS[0];
+    for (const r of CHEST_REWARDS) {
+      roll -= r.weight;
+      if (roll <= 0) {
+        picked = r;
+        break;
+      }
+    }
+    const reward = { name: picked.name, xp: picked.xp };
+    setState((prev) => ({
+      ...prev,
+      lastChestDate: today,
+      loginStamps: (prev.loginStamps % 7) + 1,
+      lastChestReward: reward,
+    }));
+    gainXp(reward.xp, [], `宝箱から「${reward.name}」を獲得!`, "chest");
+  }, [gainXp, state.lastChestDate]);
+
+  const setAvatar = React.useCallback((avatar: string) => {
+    setState((prev) => ({ ...prev, avatar }));
+  }, []);
 
   const resetAll = React.useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
@@ -354,16 +501,42 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       b1: true,
       b2: state.completedMaterials.length > 0,
       b3: state.completedQuests.length > 0,
-      b4: state.streak >= 3,
+      b4: state.loginStreak >= 3,
       b5: state.completedMaterials.length >= 5,
       b6: state.completedQuests.length >= 3,
       b7: level >= 5,
       b8: Object.keys(state.teamApplications).length > 0,
       b9: completedApprovedWithCheck,
       b10: state.completedQuests.length >= 5 && avgCompanyRating >= 4.5,
+      b11: state.licenseIssued,
     };
     return BADGES.filter((b) => checks[b.id]);
   }, [state, allQuests]);
+
+  // 新しく獲得したバッジを永続化リストへ反映し、獲得演出を出す
+  React.useEffect(() => {
+    if (!hydrated) return;
+    const ids = earnedBadges.map((b) => b.id);
+    const newIds = ids.filter((id) => !state.earnedBadges.includes(id));
+    if (newIds.length === 0) return;
+    // 初回ロード時(記録が空)はまとめて記録だけ行い、演出は出さない
+    const isFirstSync = state.earnedBadges.length === 0 && newIds.length > 1;
+    if (!isFirstSync) {
+      const badge = BADGES.find((b) => b.id === newIds[newIds.length - 1]);
+      if (badge) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- バッジ獲得は状態の派生イベントで、演出は獲得検知時に一度だけ出す
+        setCelebration({
+          key: Date.now(),
+          kind: "badge",
+          message: `実績解除:「${badge.name}」`,
+          xp: 0,
+          levelUp: null,
+          badge,
+        });
+      }
+    }
+    setState((prev) => ({ ...prev, earnedBadges: [...prev.earnedBadges, ...newIds] }));
+  }, [earnedBadges, hydrated, state.earnedBadges]);
 
   const value: GameContextValue = {
     state,
@@ -373,6 +546,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     allQuests,
     questById,
     earnedBadges,
+    studentStatus: deriveStudentStatus(state),
     completeMaterial,
     acceptQuest,
     completeQuest,
@@ -380,6 +554,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setQuestStatus,
     applyToTeam,
     completeDaily,
+    completeWeekly,
+    completeTutorialModule,
+    finishTutorial,
+    openChest,
+    setAvatar,
     resetAll,
   };
 

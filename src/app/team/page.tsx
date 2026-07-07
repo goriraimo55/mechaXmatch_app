@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Building2, CalendarDays, Coins, Users } from "lucide-react";
 import { TEAM_QUESTS } from "@/lib/data/team";
 import { useGame } from "@/lib/game";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DangerLabels, SkillChips } from "@/components/quest-parts";
 import { cn } from "@/lib/utils";
 
@@ -93,21 +94,30 @@ export default function TeamQuestsPage() {
                               参加中: {role.members.join("、")}
                             </p>
                           )}
-                          <Button
-                            size="sm"
-                            className="mt-2 w-full"
-                            variant={isApplied ? "success" : "default"}
-                            disabled={full || !!appliedRole}
-                            onClick={() => applyToTeam(tq.id, role.name)}
-                          >
-                            {isApplied
-                              ? "✅ 申請済み"
-                              : full
-                                ? "満員"
-                                : appliedRole
-                                  ? "他の役割に申請中"
-                                  : "🙋 参加申請する"}
-                          </Button>
+                          {!state.licenseIssued ? (
+                            <Link
+                              href="/tutorial"
+                              className={cn(buttonVariants({ variant: "warning", size: "sm" }), "mt-2 w-full")}
+                            >
+                              🔒 ライセンス未取得
+                            </Link>
+                          ) : (
+                            <Button
+                              size="sm"
+                              className="mt-2 w-full"
+                              variant={isApplied ? "success" : "default"}
+                              disabled={full || !!appliedRole}
+                              onClick={() => applyToTeam(tq.id, role.name)}
+                            >
+                              {isApplied
+                                ? "✅ 申請済み"
+                                : full
+                                  ? "満員"
+                                  : appliedRole
+                                    ? "他の役割に申請中"
+                                    : "🙋 参加申請する"}
+                            </Button>
+                          )}
                         </div>
                       );
                     })}

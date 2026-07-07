@@ -5,7 +5,7 @@ import { Award, BookOpen, Printer, Swords, Trophy, User } from "lucide-react";
 import { useGame, playerLevel } from "@/lib/game";
 import { MATERIAL_MAP } from "@/lib/data/materials";
 import { SKILLS, skillLevel } from "@/lib/data/skills";
-import { BADGES, titleForLevel } from "@/lib/data/misc";
+import { AVATARS, BADGES, TITLES, titleForLevel } from "@/lib/data/misc";
 import { COMPANY_REVIEWS, STUDENT_REVIEWS } from "@/lib/data/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import { Stars } from "@/components/stars";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
-  const { state, hydrated, allQuests, earnedBadges } = useGame();
+  const { state, hydrated, allQuests, earnedBadges, studentStatus, setAvatar } = useGame();
   if (!hydrated) return null;
 
   const level = playerLevel(state.xp);
@@ -46,6 +46,63 @@ export default function ProfilePage() {
           <Printer className="size-4" /> スキル証明書PDF出力
         </Link>
       </div>
+
+      {/* ギルドカード */}
+      <Card className="overflow-hidden border-neon-cyan/40">
+        <div className="h-1.5 bg-gradient-to-r from-neon-cyan via-neon-purple to-neon-pink" />
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between text-[10px] tracking-[0.3em] text-muted-foreground">
+            <span>GUILD MEMBER CARD</span>
+            <span>No. MXM-2026-0042</span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <span className="flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-neon-cyan to-neon-purple text-4xl">
+              {state.avatar}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xl font-black">{state.userName}</p>
+              <p className="text-xs text-muted-foreground">
+                {state.department} {state.grade} / Lv.{level} 「{titleForLevel(level)}」
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <Badge variant={state.licenseIssued ? "success" : "warning"}>
+                  {state.licenseIssued ? "🪪 見習い技術者ライセンス取得済み" : "🔒 ライセンス未取得"}
+                </Badge>
+                <Badge variant="purple">{studentStatus}</Badge>
+              </div>
+            </div>
+          </div>
+          {/* アバター選択 */}
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs font-bold text-muted-foreground">アバター:</span>
+            {AVATARS.map((a) => (
+              <button
+                key={a}
+                type="button"
+                onClick={() => setAvatar(a)}
+                className={cn(
+                  "flex size-9 cursor-pointer items-center justify-center rounded-lg border text-xl transition-all",
+                  state.avatar === a
+                    ? "border-primary bg-primary/15 scale-110"
+                    : "border-border hover:border-primary/50"
+                )}
+                aria-label={`アバター ${a}`}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+          {/* 称号コレクション */}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs font-bold text-muted-foreground">解放済み称号:</span>
+            {TITLES.filter((t) => level >= t.minLevel).map((t) => (
+              <Badge key={t.title} variant="secondary">
+                👑 {t.title}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ステータス */}
       <Card className="border-primary/30">

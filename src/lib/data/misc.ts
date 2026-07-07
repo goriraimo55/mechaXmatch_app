@@ -12,6 +12,7 @@ export const BADGES: BadgeDef[] = [
   { id: "b8", name: "チームプレイヤー", icon: "🤝", rarity: "レア", description: "チームクエストに参加申請した" },
   { id: "b9", name: "教員承認済みの実績", icon: "✅", rarity: "エピック", description: "教員承認済みクエストを完了した(安全に配慮できる証)" },
   { id: "b10", name: "企業に選ばれし者", icon: "👑", rarity: "レジェンド", description: "企業評価バッジ:企業から高評価(平均4.5以上)を獲得した" },
+  { id: "b11", name: "見習い技術者ライセンス", icon: "🪪", rarity: "レア", description: "工学倫理・機密情報・安全管理の講習を修了し、企業クエストの受注資格を得た" },
 ];
 
 /** 称号(レベル帯で変化) */
@@ -53,9 +54,85 @@ export const RANKING: RankingEntry[] = [
   { name: "カイト@情報2年", department: "情報工学科", grade: "2年", weeklyXp: 430, level: 6 },
 ];
 
-/** デイリークエスト定義(毎日3件) */
+/** デイリーミッション定義(毎日3件) */
 export const DAILY_QUESTS: { id: string; title: string; xp: number; icon: string }[] = [
   { id: "d1", title: "教材を1つ学習完了する", xp: 20, icon: "📖" },
   { id: "d2", title: "クエストを1件チェックする", xp: 10, icon: "🔍" },
   { id: "d3", title: "スキルツリーを確認して目標を決める", xp: 10, icon: "🌳" },
+];
+
+/** ウィークリーミッション(条件を満たすと報告してボーナスXP) */
+export const WEEKLY_MISSIONS: {
+  id: string;
+  title: string;
+  xp: number;
+  icon: string;
+  /** 進捗表示用: (state値) => {current, target} を各画面側で解決する */
+  metric: "weeklyXp" | "materials" | "dailyAll";
+  target: number;
+}[] = [
+  { id: "w1", title: "今週の獲得経験値 400 XP", xp: 80, icon: "⚡", metric: "weeklyXp", target: 400 },
+  { id: "w2", title: "学習済み教材を累計 8 本にする", xp: 60, icon: "📚", metric: "materials", target: 8 },
+  { id: "w3", title: "デイリーミッションを1日で全達成", xp: 50, icon: "🎯", metric: "dailyAll", target: 3 },
+];
+
+/** 全国高専ランキング(ダミー) */
+export const NATIONAL_RANKING: RankingEntry[] = [
+  { name: "レン@明石高専", department: "機械工学科", grade: "5年", weeklyXp: 2350, level: 21 },
+  { name: "ツバサ@木更津高専", department: "電子制御工学科", grade: "4年", weeklyXp: 2210, level: 19 },
+  { name: "ヒナタ@熊本高専", department: "情報通信エレクトロニクス工学科", grade: "5年", weeklyXp: 2080, level: 20 },
+  { name: "イツキ@仙台高専", department: "総合工学科", grade: "3年", weeklyXp: 1930, level: 15 },
+  { name: "アカリ@奈良高専", department: "機械工学科", grade: "4年", weeklyXp: 1820, level: 17 },
+  { name: "ソラ@苫小牧高専", department: "創造工学科", grade: "5年", weeklyXp: 1700, level: 18 },
+  { name: "ナギ@高知高専", department: "ソーシャルデザイン工学科", grade: "2年", weeklyXp: 1610, level: 11 },
+  { name: "アオイ@機械5年", department: "機械工学科(あなたの高専)", grade: "5年", weeklyXp: 1240, level: 14 },
+];
+
+/** スキル別ランキング(CAD部門・ダミー) */
+export const SKILL_RANKING: { skillName: string; entries: RankingEntry[] } = {
+  skillName: "CAD",
+  entries: [
+    { name: "アオイ@機械5年", department: "機械工学科", grade: "5年", weeklyXp: 640, level: 8 },
+    { name: "リク@機械4年", department: "機械工学科", grade: "4年", weeklyXp: 520, level: 7 },
+    { name: "ミナミ@情報3年", department: "情報工学科", grade: "3年", weeklyXp: 410, level: 6 },
+    { name: "ソウタ@機械3年", department: "機械工学科", grade: "3年", weeklyXp: 350, level: 5 },
+    { name: "サクラ@物質2年", department: "物質化学工学科", grade: "2年", weeklyXp: 220, level: 4 },
+  ],
+};
+
+/** 期間限定イベント(ダミー) */
+export const LIMITED_EVENT = {
+  title: "夏の実装フェス 2026",
+  description: "期間中、学習教材の獲得XPが1.5倍!夏休みにスキルツリーを一気に伸ばそう。",
+  until: "2026-08-31",
+  icon: "🎆",
+};
+
+/** 企業からのスカウト風カード(ダミー) */
+export const SCOUTS = [
+  {
+    id: "sc1",
+    company: "未来ロボティクス株式会社",
+    message: "レポート作成スキルLv.3以上のあなたに、評価実験クエストへの招待が届いています。",
+    questId: "q11",
+    icon: "🤖",
+  },
+  {
+    id: "sc2",
+    company: "株式会社タカハシ精機",
+    message: "前回の図面CAD化の丁寧な仕事ぶりを見て、続編クエストのご指名です。",
+    questId: "q7",
+    icon: "🏭",
+  },
+];
+
+/** アバター候補(プロフィールで選択) */
+export const AVATARS = ["🧑‍🔧", "👩‍🔧", "🧑‍💻", "👩‍💻", "🧑‍🏭", "🦾", "🤖", "⚙️"];
+
+/** ログインボーナスの宝箱報酬テーブル(ランダム報酬) */
+export const CHEST_REWARDS: { name: string; xp: number; weight: number }[] = [
+  { name: "ブロンズの歯車", xp: 15, weight: 50 },
+  { name: "シルバーの歯車", xp: 30, weight: 30 },
+  { name: "ゴールドの歯車", xp: 60, weight: 15 },
+  { name: "✨レジェンドコア✨", xp: 120, weight: 5 },
 ];

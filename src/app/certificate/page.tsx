@@ -49,7 +49,10 @@ export default function CertificatePage() {
       </div>
 
       {/* 証明書本体(印刷対象) */}
-      <Card className="print-area border-2 border-neon-amber/40 bg-white text-slate-900 print:border-slate-300 print:shadow-none">
+      <Card
+        className="print-area border-2 border-neon-amber/40 text-slate-900 print:border-slate-300 print:shadow-none"
+        style={{ background: "#ffffff", backdropFilter: "none" }}
+      >
         <CardContent className="p-8 sm:p-10">
           <div className="text-center">
             <p className="text-xs tracking-[0.4em] text-slate-500">CERTIFICATE OF TECHNICAL SKILLS</p>
@@ -65,6 +68,12 @@ export default function CertificatePage() {
             <p className="mt-1 text-sm text-slate-600">
               {state.department} {state.grade} / 称号:{titleForLevel(level)}
             </p>
+            {state.licenseIssued && (
+              <p className="mt-2 inline-block rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                🪪 見習い技術者ライセンス取得済み(工学倫理・機密情報・安全管理 講習修了
+                {state.tutorialQuizScore !== null && ` / 修了テスト ${state.tutorialQuizScore}点`})
+              </p>
+            )}
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3 text-center sm:grid-cols-4">

@@ -65,8 +65,31 @@ const TIER_LABELS: Record<1 | 2 | 3, { title: string; note: string }> = {
   3: { title: "TIER 3 — 総合スキル", note: "チームクエストや高難度案件で開花する上位スキル" },
 };
 
+/** 最も伸びているスキルからタイプと進路を診断する */
+const DIAGNOSIS_MAP: Record<string, { type: string; description: string; careers: string[] }> = {
+  cad: { type: "設計エンジニア", description: "形にする力が強み。図面とモデルで意思を伝えられる、ものづくりの中核人材です。", careers: ["機械設計(装置・治具)", "CADオペレータ→設計者", "生産技術"] },
+  materials: { type: "強度解析エンジニア", description: "壊れない設計を計算で裏付けられる、信頼性の要となるタイプです。", careers: ["構造解析(CAE)", "機械設計(強度担当)", "品質保証"] },
+  drawing: { type: "図面マスター", description: "図面を正確に読み書きできる力は、あらゆる製造現場で通用します。", careers: ["生産技術", "検査・品質管理", "設計補助→設計者"] },
+  machining: { type: "加工のプロフェッショナル", description: "「作れる設計」がわかる貴重なタイプ。現場と設計の橋渡し役です。", careers: ["生産技術", "加工技術者", "DFMコンサルタント"] },
+  measurement: { type: "計測・評価エンジニア", description: "データで語れる実験屋。開発の信頼性を支える存在です。", careers: ["評価・実験エンジニア", "品質保証", "研究開発補助"] },
+  electronics: { type: "エレキ系エンジニア", description: "回路とセンサに強く、メカトロ時代に引く手あまたのタイプです。", careers: ["回路設計", "組込みエンジニア", "制御盤設計"] },
+  control: { type: "制御エンジニア", description: "動きを設計できるタイプ。FA・ロボット分野で活躍できます。", careers: ["PLCエンジニア", "ロボットSIer", "FA装置メーカー"] },
+  aidx: { type: "DX推進エンジニア", description: "現場×ITの掛け算ができる、製造業DXの最前線タイプです。", careers: ["生産DX推進", "データエンジニア", "スマートファクトリー開発"] },
+  report: { type: "テクニカルコミュニケータ", description: "伝える力は最強の汎用スキル。どの職種でもエースになれます。", careers: ["開発エンジニア", "技術営業", "プロジェクトリーダー"] },
+  teamdev: { type: "チームリーダー", description: "協働で成果を出せるタイプ。将来のプロジェクトマネージャ候補です。", careers: ["プロジェクトマネージャ", "開発リーダー", "技術企画"] },
+};
+
 export default function SkillsPage() {
   const { state, hydrated } = useGame();
+
+  const ranked = SKILLS.map((s) => ({ skill: s, xp: state.skillXp[s.id] ?? 0 })).sort(
+    (a, b) => b.xp - a.xp
+  );
+  const top = ranked[0];
+  const weakest = [...ranked].reverse().find((r) => r.xp < (top?.xp ?? 0)) ?? ranked[ranked.length - 1];
+  const d = DIAGNOSIS_MAP[top.skill.id];
+  const diagnosis = { ...d, nextSkill: weakest.skill };
+
   if (!hydrated) return null;
 
   return (
@@ -98,6 +121,33 @@ export default function SkillsPage() {
           </div>
         </section>
       ))}
+
+      {/* スキル診断 & おすすめ進路 */}
+      <Card className="border-neon-cyan/30">
+        <CardContent className="p-5">
+          <h2 className="flex items-center gap-2 text-sm font-black tracking-wide text-primary">
+            🧭 スキル診断:あなたは「{diagnosis.type}」タイプ
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{diagnosis.description}</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-neon-green/30 bg-neon-green/5 p-3 text-xs">
+              <p className="font-black text-neon-green">🎓 おすすめ進路</p>
+              <ul className="mt-1.5 space-y-1 text-muted-foreground">
+                {diagnosis.careers.map((c) => (
+                  <li key={c}>▸ {c}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-lg border border-neon-amber/30 bg-neon-amber/5 p-3 text-xs">
+              <p className="font-black text-neon-amber">💪 次に伸ばすと強いスキル</p>
+              <p className="mt-1.5 text-muted-foreground">
+                {diagnosis.nextSkill.icon} <b className="text-foreground">{diagnosis.nextSkill.name}</b> —{" "}
+                {diagnosis.nextSkill.description}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-dashed">
         <CardContent className="p-5 text-sm text-muted-foreground">

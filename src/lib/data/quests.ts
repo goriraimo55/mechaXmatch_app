@@ -89,6 +89,9 @@ export const QUESTS: Quest[] = [
     teacherCheckRequired: true,
     approvalStatus: "approved",
     isTeam: false,
+    isUrgent: true,
+    isPopular: true,
+    classmatesChallenging: 3,
     background:
       "量産部品の抜き取り検査を外部に出す前に、測定手順書のわかりやすさを学生視点で検証したいと考えています。",
     request:
@@ -122,6 +125,8 @@ export const QUESTS: Quest[] = [
     teacherCheckRequired: false,
     approvalStatus: "approved",
     isTeam: false,
+    isPopular: true,
+    classmatesChallenging: 2,
     background:
       "お客様から入稿されるSTLデータに、肉厚不足・面の破れなどの不備が多く、修正作業が追いついていません。",
     request:
@@ -354,6 +359,7 @@ export const QUESTS: Quest[] = [
     approvalStatus: "approved",
     isTeam: false,
     isRare: true,
+    classmatesChallenging: 5,
     background:
       "開発中の柔軟物ハンドリング用ロボットハンドについて、把持力と対象物の損傷の関係を定量評価したいと考えています。",
     request:
@@ -453,6 +459,8 @@ export const QUESTS: Quest[] = [
     teacherCheckRequired: false,
     approvalStatus: "approved",
     isTeam: false,
+    isPopular: true,
+    classmatesChallenging: 4,
     background:
       "検査記録を毎日手作業でExcelに転記・集計しており、月末の集計に丸1日かかっています。",
     request:

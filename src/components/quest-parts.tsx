@@ -3,9 +3,10 @@
 /** クエスト表示用の小さな共通パーツ群 */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle, Building2, CalendarDays, Coins, GraduationCap,
-  MapPin, ShieldCheck, Sparkles, Users, Wifi,
+  Lock, MapPin, ShieldCheck, Sparkles, Users, Wifi,
 } from "lucide-react";
 import type { ApprovalStatus, DangerLabel, Quest } from "@/lib/types";
 import { SKILL_MAP } from "@/lib/data/skills";
@@ -74,10 +75,12 @@ export function SkillChips({ skillIds }: { skillIds: Quest["requiredSkills"] }) 
 
 /** クエスト一覧用カード */
 export function QuestCard({ quest }: { quest: Quest }) {
+  const router = useRouter();
   const { state, acceptQuest } = useGame();
   const accepted = state.acceptedQuests.includes(quest.id);
   const completed = state.completedQuests.includes(quest.id);
   const challengeable = quest.approvalStatus === "approved" && !completed;
+  const licensed = state.licenseIssued;
 
   const inner = (
     <Card
@@ -93,6 +96,12 @@ export function QuestCard({ quest }: { quest: Quest }) {
               <Sparkles /> レアクエスト
             </Badge>
           )}
+          {quest.isUrgent && (
+            <Badge variant="danger" className="animate-pulse">
+              🚨 緊急クエスト
+            </Badge>
+          )}
+          {quest.isPopular && <Badge variant="pink">🔥 今週人気</Badge>}
           {quest.isTeam && (
             <Badge variant="purple">
               <Users /> チーム
@@ -147,6 +156,11 @@ export function QuestCard({ quest }: { quest: Quest }) {
         </div>
         <SkillChips skillIds={quest.requiredSkills} />
         <DangerLabels labels={quest.dangerLabels} />
+        {!!quest.classmatesChallenging && (
+          <p className="text-xs font-bold text-neon-amber">
+            👀 同級生{quest.classmatesChallenging}人が挑戦中
+          </p>
+        )}
         <div className="mt-auto flex gap-2 pt-1">
           <Link
             href={`/quests/${quest.id}`}
@@ -154,14 +168,27 @@ export function QuestCard({ quest }: { quest: Quest }) {
           >
             詳細を見る
           </Link>
-          <Button
-            size="sm"
-            className="flex-1"
-            disabled={!challengeable || accepted}
-            onClick={() => acceptQuest(quest.id)}
-          >
-            {completed ? "達成済み" : accepted ? "挑戦中" : challengeable ? "⚔️ 挑戦する" : "承認待ち"}
-          </Button>
+          {!licensed && !completed ? (
+            // ライセンス未取得:受注ロック。クリックでチュートリアルへ誘導
+            <Button
+              size="sm"
+              variant="warning"
+              className="flex-1"
+              onClick={() => router.push("/tutorial")}
+              title="チュートリアルを完了すると受注できます"
+            >
+              <Lock /> ライセンス未取得
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="flex-1"
+              disabled={!challengeable || accepted}
+              onClick={() => acceptQuest(quest.id)}
+            >
+              {completed ? "達成済み" : accepted ? "挑戦中" : challengeable ? "⚔️ 挑戦する" : "承認待ち"}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
