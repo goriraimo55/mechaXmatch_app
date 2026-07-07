@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MechaXMatch — 高専生の技術者ギルド(スタンドアロン版)</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- モバイル用ヘッダ -->
+  <header class="mobile-header print-hidden">
+    <div class="row">
+      <a href="#/home" style="text-decoration:none;color:var(--fg)">
+        <b>⚙️ Mecha<span style="color:var(--cyan)">X</span>Match</b>
+      </a>
+      <span id="mobile-xp" class="badge cyan"></span>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav"></nav>
+  </header>
+
+  <div class="layout">
+    <!-- デスクトップ用サイドバー -->
+    <aside class="sidebar print-hidden">
+      <div class="logo">
+        <span class="mark">⚙️</span>
+        <div>
+          <b>Mecha<span>X</span>Match</b>
+          <small>高専生の技術者ギルド</small>
+        </div>
+      </div>
+      <nav id="sidebar-nav" style="flex:1"></nav>
+      <div class="player-mini" id="player-mini"></div>
+      <button class="btn ghost sm mt" onclick="App.resetAll()" title="localStorageを初期化します">🔄 進行状況をリセット</button>
+    </aside>
+
+    <!-- メイン -->
+    <main class="main" id="app">
+      <p class="center muted" style="padding:60px 0">ギルドホールに入場中…</p>
+    </main>
+  </div>
+
+  <!-- お祝い演出オーバーレイ -->
+  <div id="celebration" class="print-hidden" aria-live="polite"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

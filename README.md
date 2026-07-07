@@ -15,10 +15,18 @@
 
 ## 🚀 起動方法
 
+### 方法1: Next.js 版(メイン)
+
 ```bash
 npm install
 npm run dev
 ```
+
+### 方法2: スタンドアロン版(ビルド不要)
+
+Node.js のインストールが不要な、素の HTML / CSS / JavaScript 版も同梱しています。
+**`standalone/index.html` をブラウザで開くだけ**で同じ機能が動きます。
+詳細は [`standalone/README.md`](standalone/README.md) を参照してください。
 
 ブラウザで http://localhost:3000 を開いてください。
 
